@@ -27,7 +27,7 @@ use spin::Mutex;
 ///
 /// // declare a heap with 2^24 bytes of memory available
 /// #[global_allocator]
-/// static ALLOCATOR: Shmeap<0, { 1 << 24 }, { libc::PROT_READ | libc::PROT_WRITE }, { libc::MAP_ANONYMOUS | libc::MAP_SHARED }, None> = Shmeap::new();
+/// static ALLOCATOR: Shmeap<0, { 1 << 24 }, { libc::PROT_READ | libc::PROT_WRITE }, { libc::MAP_ANONYMOUS | libc::MAP_SHARED }, ""> = Shmeap::new();
 /// ```
 ///
 /// Using a file-backed heap (scary) which is executable (scarier) and located at 0x100000 (scariest).
@@ -36,14 +36,14 @@ use spin::Mutex;
 /// use shmalloc::Shmeap;
 ///
 /// #[global_allocator]
-/// static ALLOCATOR: Shmeap<0x100000, { 1 << 24 }, { libc::PROT_READ | libc::PROT_WRITE | libc::PROT_EXEC }, { libc::MAP_SHARED }, { Some("file.heap") }> = Shmeap::new();
+/// static ALLOCATOR: Shmeap<0x100000, { 1 << 24 }, { libc::PROT_READ | libc::PROT_WRITE | libc::PROT_EXEC }, { libc::MAP_SHARED }, "file.heap"> = Shmeap::new();
 /// ```
 pub struct Shmeap<
     const BASE: usize,
     const SIZE: usize,
     const PROT: std::os::raw::c_int,
     const FLAGS: std::os::raw::c_int,
-    const FILE: Option<&'static str>,
+    const FILE: &'static str,
 > {
     // SAFETY: mutex means it's thread-safe
     heap: Lazy<Mutex<Heap>>,
@@ -54,7 +54,7 @@ impl<
         const SIZE: usize,
         const PROT: std::os::raw::c_int,
         const FLAGS: std::os::raw::c_int,
-        const FILE: Option<&'static str>,
+        const FILE: &'static str,
     > Shmeap<BASE, SIZE, PROT, FLAGS, FILE>
 {
     /// Instantiate a new shmeap
@@ -63,8 +63,8 @@ impl<
             heap: Lazy::new(|| unsafe {
                 let mut heap = Heap::empty();
                 let map = match FILE {
-                    None => libc::mmap(BASE as _, SIZE, PROT, FLAGS, -1, 0),
-                    Some(path) => {
+                    "" => libc::mmap(BASE as _, SIZE, PROT, FLAGS, -1, 0),
+                    path => {
                         let cpath = CString::new(path).unwrap();
                         let file = libc::open(cpath.as_ptr(), PROT);
                         libc::mmap(BASE as _, SIZE, PROT, FLAGS, file, 0)
@@ -92,7 +92,7 @@ unsafe impl<
         const SIZE: usize,
         const PROT: std::os::raw::c_int,
         const FLAGS: std::os::raw::c_int,
-        const FILE: Option<&'static str>,
+        const FILE: &'static str,
     > GlobalAlloc for Shmeap<BASE, SIZE, PROT, FLAGS, FILE>
 {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
