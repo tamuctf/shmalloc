@@ -16,6 +16,15 @@ use linked_list_allocator::Heap;
 use once_cell::sync::Lazy;
 use spin::Mutex;
 
+pub use libc::{
+    MAP_32BIT, MAP_ANON, MAP_ANONYMOUS, MAP_DENYWRITE, MAP_EXECUTABLE, MAP_FILE, MAP_FIXED,
+    MAP_FIXED_NOREPLACE, MAP_GROWSDOWN, MAP_HUGETLB, MAP_HUGE_16GB, MAP_HUGE_16MB, MAP_HUGE_1GB,
+    MAP_HUGE_1MB, MAP_HUGE_256MB, MAP_HUGE_2GB, MAP_HUGE_2MB, MAP_HUGE_32MB, MAP_HUGE_512KB,
+    MAP_HUGE_512MB, MAP_HUGE_64KB, MAP_HUGE_8MB, MAP_LOCKED, MAP_NONBLOCK, MAP_NORESERVE,
+    MAP_POPULATE, MAP_PRIVATE, MAP_SHARED, MAP_SHARED_VALIDATE, MAP_STACK, MAP_SYNC,
+};
+pub use libc::{PROT_EXEC, PROT_NONE, PROT_READ, PROT_WRITE};
+
 /// Use shmalloc!
 ///
 /// # Examples
@@ -23,20 +32,20 @@ use spin::Mutex;
 /// Using a shared and anonymous map as a heap backing.
 ///
 /// ```
-/// use shmalloc::Shmeap;
+/// use shmalloc::*;
 ///
 /// // declare a heap with 2^24 bytes of memory available
 /// #[global_allocator]
-/// static ALLOCATOR: Shmeap<0, { 1 << 24 }, { libc::PROT_READ | libc::PROT_WRITE }, { libc::MAP_ANONYMOUS | libc::MAP_SHARED }, ""> = Shmeap::new();
+/// static ALLOCATOR: Shmeap<0, { 1 << 24 }, { PROT_READ | PROT_WRITE }, { MAP_ANONYMOUS | MAP_SHARED }, ""> = Shmeap::new();
 /// ```
 ///
 /// Using a file-backed heap (scary) which is executable (scarier) and located at 0x100000 (scariest).
 ///
 /// ```
-/// use shmalloc::Shmeap;
+/// use shmalloc::*;
 ///
 /// #[global_allocator]
-/// static ALLOCATOR: Shmeap<0x100000, { 1 << 24 }, { libc::PROT_READ | libc::PROT_WRITE | libc::PROT_EXEC }, { libc::MAP_SHARED }, "file.heap"> = Shmeap::new();
+/// static ALLOCATOR: Shmeap<0x100000, { 1 << 24 }, { PROT_READ | PROT_WRITE | PROT_EXEC }, { MAP_SHARED }, "file.heap"> = Shmeap::new();
 /// ```
 pub struct Shmeap<
     const BASE: usize,
